@@ -1,0 +1,190 @@
+---
+title: "Untitled"
+author: "Cristian Brotfeld"
+date: "2023-09-23"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.retina = 2)
+pacman::p_load(igraph, ggraph,tidyverse,rebus,tidygraph)
+```
+
+
+```{r}
+tus_datos <- data.frame(
+  Estudiante = c(
+    "Juan", "Ana", "Luis", "María", "Carlos", "Sofía", "Diego", "Elena",
+    "Andrés", "Laura", "Pedro", "Valeria", "Ricardo", "Isabella",
+    "Marta", "Javier", "Natalia", "Fernando", "Lorena"
+  ),
+  Amigos = I(list(
+    c("Ana", "Luis", "Sofía"),
+    c("Juan", "María", "Carlos"),
+    c("María", "Sofía", "Valeria"),
+    c("Luis", "Andrés"),
+    c("Sofía", "Pedro", "Ricardo"),
+    c("Carlos", "Isabella"),
+    c("Laura", "Marta"),
+    c("Andrés", "Valeria", "Lorena"),
+    c("Marta", "Javier"),
+    c("Diego", "Luis", "Fernando"),
+    c("Valeria", "Ricardo"),
+    c("Pedro", "Javier", "Natalia"),
+    c("Isabella", "Lorena"),
+    c("Ricardo", "Marta"),
+    c("Javier", "Natalia"),
+    c("Natalia", "Fernando"),
+    c("Fernando", "Lorena"),
+    c("Lorena", "Elena"),
+    c("Elena", "Andrés")
+  ))
+)
+```
+
+
+
+```{r}
+a = c()
+amigos_separados <- strsplit(as.character(tus_datos$Amigos), ", ")
+for(i in 1:length(amigos_separados)){
+  a[i] = length(amigos_separados[[i]])
+}
+a = max(a)
+
+mat_nombres = matrix(ncol=a,nrow=length(amigos_separados))
+for(i in 1:length(amigos_separados)){
+  for(j in 1:a){
+    
+    bla = str_replace_all(amigos_separados[[i]][j],negated_char_class(WRD),"")
+    mat_nombres[i,j] = str_replace_all(bla,START%R%"c","")
+  }
+}
+```
+
+
+```{r}
+datos_socio = data.frame(cbind(Estudiante=tus_datos$Estudiante,mat_nombres)) %>% gather(key=bla,value=amigo,-1) %>% select(1,3) %>% 
+  filter(is.na(amigo)==F) %>% 
+  filter(!(Estudiante == amigo))
+
+datos_socio <- unique(datos_socio[c("Estudiante", "amigo")])
+```
+
+## A través de igraph
+
+```{r}
+social_net = graph.data.frame(datos_socio)
+adjacency_matrix<-get.adjacency(social_net) ## obtener matriz:
+data.frame(as.matrix(adjacency_matrix)) ## obtener dataframe:
+plot(social_net)
+```
+
+## Algunas funciones y atributos dentro de objetos tipo graph
+
+```{r}
+V(social_net) # nombre de los vertices
+degree(social_net) # conexiones
+V(social_net)$label = V(social_net)$name # agregar atributos en el objeto, en este caso label
+V(social_net)$degree = degree(social_net) # agregar atributos en el objeto, en este caso label
+plot(social_net,vertex.color = "green",
+     vertex.size=V(social_net)$degree*2)
+```
+
+
+## A través de tidyverse
+
+Desde los datos podemos pasar a algo graficable y utilizables a través de tbl_graph. Esta función permite en edges especificar los vinculos, en nodes, especificar información acerca de los nodos. Está el argumento directed, si es igual a treu, solo va a indicar la cantidad de votos favorables que tuvo la persona, y si lo ponemos como false, va a indicar el total de votos emitidos y el total. En este caso, vamos a poner información de los nodos adicional, que no se genera en la tabla misma. Esta información será una variable aleatoria de puntaje en nivel socioemocional por ejemplo, que va de 0 a 5. También vamos a ver cuántos votos emitió cada uno:
+
+Acá generamos información de cada nodo:
+
+
+```{r}
+Estudiante = unique(datos_socio$Estudiante)
+bienestar = rbinom(n=length(Estudiante),size = 5,prob = 0.8)
+votos_emitidos = datos_socio %>% count(Estudiante) %>% rename(votos_emitidos = n)
+info_nodos = data.frame(cbind(Estudiante,bienestar))
+info_nodos = info_nodos %>% left_join(votos_emitidos)
+```
+
+Acá podemos generar el tipo de base que es procesable. En ella vamos a calcular la popularidad
+
+```{r}
+social_net_tbls <- tbl_graph(edges = datos_socio,directed = TRUE,nodes = info_nodos) ## el directed = TRUE hace que el conteo basado en la centralidad se base en total de votos recibidos o total emitidos + recibidos
+#social_net_tbls_directed <- tbl_graph(edges = datos_socio,directed = TRUE) ## esto parece que es el entorno tidyverse
+social_net_tbls = social_net_tbls %>% mutate(popularidad = centrality_degree(mode = 'in'))
+data.frame(social_net_tbls)
+```
+
+
+```{r}
+## tipos de layout: stress, auto, 
+social_net_tbls %>% ggraph(layout = "auto") +                            
+  geom_node_point(aes(size = factor(votos_emitidos), color=factor(popularidad))) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_link(arrow = arrow(length = unit(2,"mm"))) +
+  theme_void() +
+  labs(size = "Votos emitidos", color = "Votos recibidos") +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+## tipos de layout: stress, auto, 
+social_net_tbls %>% ggraph(layout = "kk") +                            
+  geom_node_point(aes(size = factor(votos_emitidos), color=factor(popularidad))) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_link(arrow = arrow(length = unit(2,"mm"))) +
+  theme_void() +
+  labs(size = "Votos emitidos", color = "Votos recibidos") +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+## tipos de layout: stress, auto, 
+social_net_tbls %>% ggraph(layout = "auto") +                            
+  geom_node_point(aes(size = factor(popularidad), color=factor(popularidad))) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_link(arrow = arrow(length = unit(2,"mm"))) +
+  theme_void() +
+  labs(size = "Votos recibidos", color = "Votos recibidos") +
+  theme(legend.position = "bottom")
+```
+
+
+
+```{r}
+igraph_layouts <- c('star', 'circle', 'gem', 'dh', 'graphopt', 'grid', 'mds', 
+                    'randomly', 'fr', 'kk', 'drl', 'lgl')
+```
+
+
+```{r fig.height=8,fig.width=7}
+## tipos de layout: stress, auto, 
+social_net_tbls %>% ggraph(layout = igraph_layouts[9]) +                            
+  geom_node_point(aes(size = factor(popularidad), color=factor(popularidad))) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_link(arrow = arrow(length = unit(1,"mm")),alpha=0.5,size=2) +
+  theme_void() +
+  labs(size = "Votos recibidos", color = "Votos recibidos") +
+  theme(legend.position = "bottom")
+```
+
+La función geom_edge_fan (0,2) permite que los vínculos recíprocos sean observables
+
+```{r fig.height=8,fig.width=7}
+## tipos de layout: stress, auto, 
+social_net_tbls %>% ggraph(layout = igraph_layouts[9]) +                            
+  geom_node_point(aes(size = factor(popularidad), color=factor(popularidad))) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_fan2(arrow = arrow(length = unit(1,"mm")),alpha=0.5,size=2) +
+  theme_void() +
+  labs(size = "Votos recibidos", color = "Votos recibidos") +
+  theme(legend.position = "bottom")
+```
+
+
+
+

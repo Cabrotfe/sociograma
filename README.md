@@ -119,7 +119,7 @@ plot(social_net)
 V(social_net) # nombre de los vertices
 ```
 
-    ## + 19/19 vertices, named, from ee36b0b:
+    ## + 19/19 vertices, named, from 829b317:
     ##  [1] Juan     Ana      Luis     María    Carlos   Sofía    Diego    Elena   
     ##  [9] Andrés   Laura    Pedro    Valeria  Ricardo  Isabella Marta    Javier  
     ## [17] Natalia  Fernando Lorena
@@ -180,25 +180,25 @@ data.frame(social_net_tbls)
 ```
 
     ##    Estudiante bienestar votos_emitidos popularidad
-    ## 1        Juan         4              3           1
+    ## 1        Juan         5              3           1
     ## 2         Ana         4              3           1
     ## 3        Luis         4              3           3
-    ## 4       María         5              2           2
-    ## 5      Carlos         2              3           2
-    ## 6       Sofía         5              2           3
-    ## 7       Diego         5              2           1
-    ## 8       Elena         2              3           2
-    ## 9      Andrés         4              2           3
-    ## 10      Laura         3              3           1
+    ## 4       María         2              2           2
+    ## 5      Carlos         4              3           2
+    ## 6       Sofía         3              2           3
+    ## 7       Diego         3              2           1
+    ## 8       Elena         5              3           2
+    ## 9      Andrés         5              2           3
+    ## 10      Laura         5              3           1
     ## 11      Pedro         5              2           2
     ## 12    Valeria         4              3           3
-    ## 13    Ricardo         3              2           3
-    ## 14   Isabella         3              2           2
-    ## 15      Marta         3              2           3
-    ## 16     Javier         5              2           3
+    ## 13    Ricardo         4              2           3
+    ## 14   Isabella         5              2           2
+    ## 15      Marta         4              2           3
+    ## 16     Javier         3              2           3
     ## 17    Natalia         5              2           3
-    ## 18   Fernando         4              2           3
-    ## 19     Lorena         5              2           4
+    ## 18   Fernando         3              2           3
+    ## 19     Lorena         3              2           4
 
 ``` r
 ## tipos de layout: stress, auto, 
@@ -299,7 +299,258 @@ social_net_tbls %>% ggraph(layout = igraph_layouts[9]) +
 
 <img src="README_files/figure-gfm/unnamed-chunk-13-1.png" width="768" />
 
-### Con igraph y luego tidyverse:
+# Métricas:
+
+Cuando tenemos una red, podemos identificar la importancia de cada
+estudiante en varias métricas, a continuación encontramos un ejemplo:
+
+``` r
+medidas_centralidad <- social_net_tbls %>%
+  mutate(emitidos = centrality_degree(mode = "out"),
+         recibidos = centrality_degree(mode = "in"),
+         betweenness = centrality_betweenness(),
+         closeness = centrality_closeness(),
+         eigen_centrality = centrality_eigen())
+```
+
+## Centralidad de intermediación (Betweenness Centrality):
+
+Mide la importancia de un nodo en términos de cuántas veces se encuentra
+en el camino más corto entre otros nodos en la red. Los nodos con alta
+centralidad de intermediación tienden a ser “puentes” entre grupos de
+nodos. Estos nodos son críticos para mantener la conectividad y
+facilitar la comunicación entre diferentes partes del grafo. Si se
+eliminan nodos con alta centralidad de intermediación, es más probable
+que la red se fragmente en componentes aislados.
+
+``` r
+## tipos de layout: stress, auto, 
+medidas_centralidad %>% ggraph(layout = igraph_layouts[9]) +                            
+  geom_node_point(aes(size = factor(popularidad), color=betweenness)) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_fan2(arrow = arrow(length = unit(3,"mm")),alpha=0.5,size=2) +
+  theme_void() +
+  labs(size = "Votos recibidos", color = "Importancia de puente") +
+  theme(legend.position = "bottom") +
+  scale_colour_gradientn(colours = c("red2","green2")) +
+  labs(title = "Importancia de personas puente")
+```
+
+    ## Warning in geom_edge_fan2(arrow = arrow(length = unit(3, "mm")), alpha = 0.5, :
+    ## Ignoring unknown parameters: `edge_size`
+
+    ## Warning: Using size for a discrete variable is not advised.
+
+<img src="README_files/figure-gfm/unnamed-chunk-15-1.png" width="768" />
+
+$$C_B(v) = \sum_{s \neq v \neq t} \frac{\sigma_{st}(v)}{\sigma_{st}}$$
+
+Donde:
+
+\$ (\_B(v)) \$ es la centralidad de intermediación del nodo (v).
+
+\$ (\_{st})\$ es el número total de caminos más cortos entre el nodo (s)
+y el nodo (t).
+
+\$ (\_{st}(v)) \$ es el número de caminos más cortos entre (s) y (t) que
+pasan por el nodo (v).
+
+## Centralidad de cercanía:
+
+Los nodos con una alta Centralidad de Cercanía son considerados
+“centrales” en la red porque están más cerca, en términos de la
+distancia geodésica, de todos los demás nodos. Esto significa que pueden
+comunicarse o transmitir información de manera más eficiente a otros
+nodos en la red.
+
+La Centralidad de Cercanía puede ayudar a identificar nodos importantes
+que actúan como intermediarios efectivos o puntos de control en una red.
+Si necesitas que la información se propague rápidamente o que ciertos
+nodos sean accesibles para todos los demás, debes prestar atención a
+aquellos con una alta Centralidad de Cercanía.
+
+Por otro lado, los nodos con una baja Centralidad de Cercanía están más
+alejados de otros nodos y pueden ser menos eficientes en la comunicación
+o la transmisión de información.
+
+``` r
+## tipos de layout: stress, auto, 
+medidas_centralidad %>% ggraph(layout = igraph_layouts[9]) +                            
+  geom_node_point(aes(size = factor(popularidad), color=closeness)) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_fan2(arrow = arrow(length = unit(3,"mm")),alpha=0.5,size=2) +
+  theme_void() +
+  labs(size = "Votos recibidos", color = "Centralidad y cercanía") +
+  theme(legend.position = "bottom") +
+  scale_colour_gradientn(colours = c("red2","green2")) +
+  labs(title = "Nivel de cercanía")
+```
+
+    ## Warning in geom_edge_fan2(arrow = arrow(length = unit(3, "mm")), alpha = 0.5, :
+    ## Ignoring unknown parameters: `edge_size`
+
+    ## Warning: Using size for a discrete variable is not advised.
+
+<img src="README_files/figure-gfm/unnamed-chunk-16-1.png" width="768" />
+
+La diferencia entre la medida de betweenness y la de closeness es que
+esta última se centra se centra en la eficiencia de la comunicación y la
+accesibilidad y es útil donde la rapidez en la difusión de información
+es importante. Por otro lado, la de betweenness se centra en la
+capacidad de un nodo para actuar como intermediario, y es útil en redes
+donde la intermediación es esencial.
+
+Fórmula:
+
+$C_C(v) = 1 / ∑_{u ≠ v} d(u, v)$
+
+donde:
+
+\$ C_C(v) \$ es la distancia basada en cercanía $u$ es un nodo diferente
+de v en el grafo. \$ d(u,v)\$ es la distancia más corta (longitud del
+camino más corto) entre los nodos $u$ y $v$
+
+### Centralidad del autovector:
+
+La Centralidad de Autovector asigna a un nodo un valor basado en su
+capacidad para estar conectado con otros nodos importantes en la red.
+Los nodos con una alta Centralidad de Autovector tienden a estar en
+posiciones estratégicas en la red y están conectados a otros nodos
+influyentes. Esta métrica es útil para identificar nodos que pueden
+ejercer influencia indirecta sobre toda la red debido a sus conexiones
+con nodos importantes.
+
+``` r
+## tipos de layout: stress, auto, 
+medidas_centralidad %>% ggraph(layout = igraph_layouts[9]) +                            
+  geom_node_point(aes(size = factor(popularidad), color=eigen_centrality)) +                                     
+  geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) + 
+  geom_edge_fan2(arrow = arrow(length = unit(3,"mm")),alpha=0.5,size=2) +
+  theme_void() +
+  labs(size = "Votos recibidos", color = "Influencia") +
+  theme(legend.position = "bottom") +
+  scale_colour_gradientn(colours = c("red2","green2")) +
+  labs(title = "Nivel de importancia e influencia")
+```
+
+    ## Warning in geom_edge_fan2(arrow = arrow(length = unit(3, "mm")), alpha = 0.5, :
+    ## Ignoring unknown parameters: `edge_size`
+
+    ## Warning: Using size for a discrete variable is not advised.
+
+<img src="README_files/figure-gfm/unnamed-chunk-17-1.png" width="768" />
+
+### Métricas de la red:
+
+Clusters Group_infomap intenta hacer clusters basados en proximidad. Acá
+un ejemplo:
+
+``` r
+# Calcula el coeficiente de clustering en un grafo
+medidas_centralidad %>% 
+    mutate(Grupos = as.factor(group_infomap())) %>% 
+    ggraph(layout = igraph_layouts[9]) + 
+    geom_edge_fan2(arrow = arrow(length = unit(3,"mm")),alpha=0.5,size=2) + 
+    geom_node_point(aes(colour = Grupos, size = factor(popularidad))) +
+    geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) +
+    theme_graph() +
+    labs(title = "Clusters o grupos", size = "Popularidad")
+```
+
+    ## Warning in geom_edge_fan2(arrow = arrow(length = unit(3, "mm")), alpha = 0.5, :
+    ## Ignoring unknown parameters: `edge_size`
+
+    ## Warning: Using size for a discrete variable is not advised.
+
+    ## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+    ## not found in Windows font database
+
+    ## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+    ## not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+    ## not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+<img src="README_files/figure-gfm/unnamed-chunk-18-1.png" width="768" />
+
+Hay diferentes métodos de clustering, por ejemplo: group_optimal(),
+group_components()
+
+``` r
+medidas_centralidad %>% 
+    mutate(Grupos = as.factor(group_optimal(weights=NULL))) %>% 
+    ggraph(layout = igraph_layouts[9]) + 
+    geom_edge_fan2(arrow = arrow(length = unit(3,"mm")),alpha=0.5,size=2) + 
+    geom_node_point(aes(colour = Grupos, size = factor(popularidad))) +
+    geom_node_text(aes(label = Estudiante), nudge_y = 0.05, nudge_x = 0.2) +
+    theme_graph() +
+    labs(title = "Clusters o grupos", size = "Popularidad")
+```
+
+    ## Warning in geom_edge_fan2(arrow = arrow(length = unit(3, "mm")), alpha = 0.5, :
+    ## Ignoring unknown parameters: `edge_size`
+
+    ## Warning: Using size for a discrete variable is not advised.
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
+
+<img src="README_files/figure-gfm/unnamed-chunk-19-1.png" width="672" />
+
+# Anexo:
+
+## Con igraph y luego tidyverse:
 
 Con igraph podemos también poner atributos de los nodos, y luego ocupar
 eso para hacer gráficos generando un objeto tipo tbl que podemos usar
@@ -329,11 +580,11 @@ socio_net_tbl %>% ggraph(layout = 'kk', maxiter = 100) +
   theme_graph()
 ```
 
-    ## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
-    ## not found in Windows font database
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
 
-    ## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
-    ## not found in Windows font database
+    ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
+    ## family not found in Windows font database
 
     ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
     ## family not found in Windows font database
@@ -341,7 +592,7 @@ socio_net_tbl %>% ggraph(layout = 'kk', maxiter = 100) +
     ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
     ## family not found in Windows font database
 
-<img src="README_files/figure-gfm/unnamed-chunk-16-1.png" width="672" />
+<img src="README_files/figure-gfm/unnamed-chunk-22-1.png" width="672" />
 
 ### Layouts: auto
 
@@ -369,4 +620,4 @@ socio_net_tbl %>% ggraph(layout = 'auto') +
     ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
     ## family not found in Windows font database
 
-<img src="README_files/figure-gfm/unnamed-chunk-17-1.png" width="672" />
+<img src="README_files/figure-gfm/unnamed-chunk-23-1.png" width="672" />
