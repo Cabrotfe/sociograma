@@ -318,8 +318,35 @@ medidas_centralidad %>%
     labs(title = "Clusters o grupos", size = "Popularidad")
 ```
 
+Medida de densidad: va entre 0 y 1, es 0 cuando no hay conexiones y es 1 cuando todos los puntos se conectan entre sí
 
+```{r}
+igraph::edge_density(medidas_centralidad) # 
+```
 
+Diámtro de la red: indica el camino más largo entre nodos. Una extensión larga implica que hay puntos más lejanos entre sí.
+
+```{r}
+with_graph(medidas_centralidad, graph_diameter())
+```
+
+Distancia promedio entre nodos: indica a qué distancia en promedio se encuentran 2 nodos. Entre menor sea, más conectada y cohesionada se encuentra la red
+
+```{r}
+with_graph(medidas_centralidad, graph_mean_dist())
+```
+
+Porporción de triángulos (esto no lo entendí)
+
+```{r}
+igraph::transitivity(medidas_centralidad)
+```
+
+Proporción de relaciones mutuas respecto al total de relaciones
+
+```{r}
+igraph::reciprocity(medidas_centralidad,mode = "ratio")
+```
 
 
 

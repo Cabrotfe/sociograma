@@ -119,7 +119,7 @@ plot(social_net)
 V(social_net) # nombre de los vertices
 ```
 
-    ## + 19/19 vertices, named, from 829b317:
+    ## + 19/19 vertices, named, from afce6cd:
     ##  [1] Juan     Ana      Luis     María    Carlos   Sofía    Diego    Elena   
     ##  [9] Andrés   Laura    Pedro    Valeria  Ricardo  Isabella Marta    Javier  
     ## [17] Natalia  Fernando Lorena
@@ -180,25 +180,25 @@ data.frame(social_net_tbls)
 ```
 
     ##    Estudiante bienestar votos_emitidos popularidad
-    ## 1        Juan         5              3           1
-    ## 2         Ana         4              3           1
-    ## 3        Luis         4              3           3
-    ## 4       María         2              2           2
+    ## 1        Juan         3              3           1
+    ## 2         Ana         3              3           1
+    ## 3        Luis         5              3           3
+    ## 4       María         4              2           2
     ## 5      Carlos         4              3           2
     ## 6       Sofía         3              2           3
-    ## 7       Diego         3              2           1
-    ## 8       Elena         5              3           2
+    ## 7       Diego         5              2           1
+    ## 8       Elena         4              3           2
     ## 9      Andrés         5              2           3
-    ## 10      Laura         5              3           1
-    ## 11      Pedro         5              2           2
-    ## 12    Valeria         4              3           3
-    ## 13    Ricardo         4              2           3
-    ## 14   Isabella         5              2           2
+    ## 10      Laura         3              3           1
+    ## 11      Pedro         4              2           2
+    ## 12    Valeria         3              3           3
+    ## 13    Ricardo         3              2           3
+    ## 14   Isabella         3              2           2
     ## 15      Marta         4              2           3
-    ## 16     Javier         3              2           3
-    ## 17    Natalia         5              2           3
-    ## 18   Fernando         3              2           3
-    ## 19     Lorena         3              2           4
+    ## 16     Javier         1              2           3
+    ## 17    Natalia         4              2           3
+    ## 18   Fernando         5              2           3
+    ## 19     Lorena         5              2           4
 
 ``` r
 ## tipos de layout: stress, auto, 
@@ -548,6 +548,50 @@ medidas_centralidad %>%
 
 <img src="README_files/figure-gfm/unnamed-chunk-19-1.png" width="672" />
 
+Medida de densidad: va entre 0 y 1, es 0 cuando no hay conexiones y es 1
+cuando todos los puntos se conectan entre sí
+
+``` r
+igraph::edge_density(medidas_centralidad) # 
+```
+
+    ## [1] 0.1315789
+
+Diámtro de la red: indica el camino más largo entre nodos. Una extensión
+larga implica que hay puntos más lejanos entre sí.
+
+``` r
+with_graph(medidas_centralidad, graph_diameter())
+```
+
+    ## [1] 7
+
+Distancia promedio entre nodos: indica a qué distancia en promedio se
+encuentran 2 nodos. Entre menor sea, más conectada y cohesionada se
+encuentra la red
+
+``` r
+with_graph(medidas_centralidad, graph_mean_dist())
+```
+
+    ## [1] 2.615044
+
+Porporción de triángulos (esto no lo entendí)
+
+``` r
+igraph::transitivity(medidas_centralidad)
+```
+
+    ## [1] 0.2195122
+
+Proporción de relaciones mutuas respecto al total de relaciones
+
+``` r
+igraph::reciprocity(medidas_centralidad,mode = "ratio")
+```
+
+    ## [1] 0.1842105
+
 # Anexo:
 
 ## Con igraph y luego tidyverse:
@@ -592,7 +636,7 @@ socio_net_tbl %>% ggraph(layout = 'kk', maxiter = 100) +
     ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
     ## family not found in Windows font database
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-1.png" width="672" />
+<img src="README_files/figure-gfm/unnamed-chunk-27-1.png" width="672" />
 
 ### Layouts: auto
 
@@ -620,4 +664,4 @@ socio_net_tbl %>% ggraph(layout = 'auto') +
     ## Warning in grid.Call(C_textBounds, as.graphicsAnnot(x$label), x$x, x$y, : font
     ## family not found in Windows font database
 
-<img src="README_files/figure-gfm/unnamed-chunk-23-1.png" width="672" />
+<img src="README_files/figure-gfm/unnamed-chunk-28-1.png" width="672" />
